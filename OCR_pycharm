@@ -1,0 +1,56 @@
+# Install necessary packages
+# You can run these in the terminal if they aren't already installed
+# !pip install python-doctr
+# !pip install "python-doctr[tf]"
+# !pip install "python-doctr[torch]"
+
+import tracemalloc
+from doctr.io import DocumentFile
+from doctr.models import ocr_predictor
+from google.colab import files  # Import `files` only if using Google Colab for file upload
+
+# Initialize the OCR model
+model = ocr_predictor(det_arch='db_resnet50', reco_arch='sar_resnet31', pretrained=True)
+
+# Start memory tracking
+tracemalloc.start()
+print("Memory before execution:", tracemalloc.get_traced_memory()[1], "bytes")
+
+# Upload PDF file (uncomment if running in Google Colab, otherwise use a local path in PyCharm)
+# uploaded_files = files.upload()
+
+# If using a local file path, set it here
+file_name = 'path_to_your_file.pdf'  # Replace 'path_to_your_file.pdf' with your actual file path
+
+# Convert the uploaded PDF to a DocumentFile object
+pdf = DocumentFile.from_pdf(file_name)
+
+# Process the PDF with the model
+result_json = model(pdf)
+
+# Export the result as JSON
+output = result_json.export()
+
+# Extract and format text
+finalText = ""
+for i in output:
+    for j in output[i]:
+        for k in j["blocks"]:
+            for l in k["lines"]:
+                lineText = " ".join([m['value'] for m in l["words"]])
+                finalText += lineText + "\n"
+finalText = finalText.strip()
+print("Extracted Text:\n", finalText)
+
+# Additional text extraction as shown in original code
+text = output['pages'][0]['blocks'][0]['lines'][0]['words'][0]['value']
+finalText = ""
+for i in range(len(text)):
+    all_text = output['pages'][0]['blocks'][0]['lines'][0]['words'][i]['value']
+    finalText += " " + all_text
+print("Concatenated Text:\n", finalText)
+
+# Display memory usage after execution
+current, peak = tracemalloc.get_traced_memory()
+print(f"Memory after execution: Current memory = {current} bytes; Peak memory = {peak} bytes")
+tracemalloc.stop()
