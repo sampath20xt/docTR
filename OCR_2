@@ -1,0 +1,128 @@
+Here’s the complete updated Google Colab code, organized step-by-step to help you run the docTR OCR pipeline in Colab seamlessly. Each step includes comments to guide you through the process.
+
+Step 1: Install Dependencies
+
+Run this block first to install the necessary packages, including docTR, torch, tf2onnx, mplcursors, and Pillow.
+
+# Step 1: Install docTR and other dependencies
+!pip install python-doctr[torch] torchvision tf2onnx mplcursors pillow
+
+Step 2: Import Required Libraries
+
+Once the installation is complete, run this block to import all necessary libraries and modules for the OCR pipeline.
+
+# Step 2: Import required libraries
+import matplotlib.pyplot as plt
+from PIL import Image
+from doctr.io import DocumentFile
+from doctr.models import ocr_predictor
+from doctr.utils.visualization import visualize_page
+from google.colab import files
+
+Step 3: Upload an Image
+
+Run this block to upload an image from your local machine. This code will open a file dialog in Colab where you can select the image file you want to use.
+
+# Step 3: Upload an image
+# This will open a file dialog to upload an image file from your local device.
+uploaded = files.upload()
+uploaded_image_path = list(uploaded.keys())[0]  # Automatically uses the uploaded file name
+
+Step 4: Initialize the OCR Model
+
+Define a function to initialize the docTR OCR model using db_resnet50 for text detection and sar_resnet31 for text recognition. Run this block after uploading the image.
+
+# Step 4: Initialize OCR Model
+def initialize_ocr_model():
+    """
+    Initialize the OCR model with db_resnet50 for detection
+    and sar_resnet31 for recognition.
+    """
+    return ocr_predictor(det_arch='db_resnet50', reco_arch='sar_resnet31')
+
+Step 5: Load and Preprocess the Image
+
+Define a function to load the image using PIL. This function ensures the image is in RGB format, which is compatible with docTR and matplotlib. Run this block to set up the image-loading function.
+
+# Step 5: Define Image Loading Function
+def load_image(image_path):
+    """
+    Load an image from the specified path and ensure it's in RGB format.
+    """
+    image = Image.open(image_path).convert("RGB")  # Using PIL to load the image and convert to RGB
+    return image
+
+Step 6: Perform OCR on the Image
+
+Define a function to perform OCR using the initialized model. This function loads the document as a DocumentFile and returns the OCR result. Run this block to set up the OCR function.
+
+# Step 6: Define OCR Prediction Function
+def perform_ocr(model, image_path):
+    """
+    Run OCR on the given image using the specified model.
+    """
+    # Load the document as docTR DocumentFile
+    doc = DocumentFile.from_images(image_path)
+    
+    # Run OCR prediction
+    result = model(doc)
+    return result
+
+Step 7: Display OCR Results
+
+Define a function to display the OCR results visually and print recognized text. This function visualizes detected text on the original image and prints recognized text line-by-line. Run this block to set up the display function.
+
+# Step 7: Define Display Function for OCR Results
+def display_results(result, original_image):
+    """
+    Display detected text with bounding boxes on the image and print recognized text.
+    """
+    # Visualize OCR results on the image
+    visualized_image = visualize_page(result.pages[0].export(), original_image)
+    
+    # Plot the image with OCR results
+    plt.figure(figsize=(10, 10))
+    plt.imshow(visualized_image)
+    plt.axis('off')
+    plt.show()
+
+    # Print recognized text line-by-line
+    for block in result.pages[0].blocks:
+        for line in block.lines:
+            print(" ".join(word.value for word in line.words))
+
+Step 8: Define the Main Pipeline Function
+
+Define a main function that brings together all previous functions to initialize the model, load the image, perform OCR, and display the results. Run this block to set up the main pipeline function.
+
+# Step 8: Define Main Pipeline Function
+def main(image_path):
+    # Initialize the OCR model
+    model = initialize_ocr_model()
+    
+    # Load the image
+    original_image = load_image(image_path)
+    
+    # Perform OCR on the image
+    result = perform_ocr(model, image_path)
+    
+    # Display results
+    display_results(result, original_image)
+
+Step 9: Run the OCR Pipeline
+
+Finally, run this block to execute the OCR pipeline on the uploaded image. This block calls the main function with the uploaded image path.
+
+# Step 9: Run the OCR Pipeline
+# This final step runs the complete OCR pipeline on the uploaded image.
+main(uploaded_image_path)
+
+Summary of Steps
+
+	1.	Run Step 1 to install the required dependencies.
+	2.	Run Step 2 to import libraries.
+	3.	Run Step 3 to upload your image file.
+	4.	Run Steps 4 to 8 sequentially to define each function.
+	5.	Run Step 9 to execute the OCR pipeline on the uploaded image.
+
+This should provide a complete, error-free workflow for performing OCR on your image using docTR in Google Colab. Let me know if you encounter any further issues!
