@@ -1,0 +1,164 @@
+Here’s the step-by-step code with explanations for each block to test out in Google Colab:
+
+Step 1: Install the required libraries
+
+Run this block to install python-doctr and its dependencies.
+
+!pip install python-doctr
+!pip install "python-doctr[tf]"
+!pip install "python-doctr[torch]"
+
+Step 2: Import necessary libraries
+
+This block imports the required libraries for document processing and image manipulation.
+
+from doctr.io import DocumentFile
+from doctr.models import ocr_predictor
+import cv2
+import numpy as np
+from google.colab import files
+
+Step 3: Initialize the OCR model
+
+Here, we initialize the docTR OCR model with specific detection and recognition architectures.
+
+# Initialize the OCR model
+model = ocr_predictor(det_arch='db_resnet50', reco_arch='sar_resnet31', pretrained=True)
+
+Step 4: Upload the PDF file
+
+This code allows you to upload a PDF file to Colab.
+
+# Upload PDF file
+uploaded_files = files.upload()
+
+# Extract the uploaded file path (assuming only one file is uploaded)
+file_name = list(uploaded_files.keys())[0]
+
+Step 5: Convert the uploaded PDF to a DocumentFile object
+
+The docTR library can handle PDF files and convert them to a format that the OCR model can process.
+
+# Convert the uploaded PDF to a DocumentFile object
+pdf = DocumentFile.from_pdf(file_name)
+
+Step 6: Define a function to check if the text in a block is vertically aligned
+
+This function estimates if the text block is aligned vertically by calculating the angle between the start and end words of a line.
+
+def is_vertical_text(block):
+    if len(block['lines']) > 1:
+        # Calculate angle based on the first and last words in the line
+        x1, y1 = block['lines'][0]['words'][0]['geometry'][0]
+        x2, y2 = block['lines'][-1]['words'][-1]['geometry'][1]
+        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
+        return angle > 45 and angle < 135  # Vertical alignment is typically around 90 degrees
+    return False
+
+Step 7: Process each page of the PDF, handling both vertical and horizontal text
+
+This block iterates through each page of the PDF, checks for vertical text blocks, rotates them if necessary, and extracts the text.
+
+final_text = ""
+for page in pdf:
+    # Process the page with the model
+    result = model([page])
+    
+    # Export the result to JSON
+    output = result.export()
+    
+    # Iterate through each page, block, and line
+    for page_idx, page_data in enumerate(output['pages']):
+        for block in page_data['blocks']:
+            if is_vertical_text(block):
+                # Rotate page if text is vertical
+                rotated_page = cv2.rotate(page, cv2.ROTATE_90_CLOCKWISE)
+                rotated_result = model([rotated_page]).export()
+                # Extract and process rotated text
+                for rotated_block in rotated_result['pages'][0]['blocks']:
+                    for line in rotated_block['lines']:
+                        line_text = " ".join([word['value'] for word in line['words']])
+                        final_text += line_text + "\n"
+            else:
+                # Process as normal horizontal text
+                for line in block['lines']:
+                    line_text = " ".join([word['value'] for word in line['words']])
+                    final_text += line_text + "\n"
+
+final_text = final_text.strip()
+print(final_text)
+
+Step 8: Display the final extracted text
+
+This final block will print the extracted text, both horizontally and vertically aligned, from the PDF.
+
+# Display the final extracted text
+print(final_text)
+
+Full Code to Run Sequentially in Google Colab
+
+If you’d like to copy and run all steps together, here is the combined code:
+
+!pip install python-doctr
+!pip install "python-doctr[tf]"
+!pip install "python-doctr[torch]"
+
+from doctr.io import DocumentFile
+from doctr.models import ocr_predictor
+import cv2
+import numpy as np
+from google.colab import files
+
+# Initialize the OCR model
+model = ocr_predictor(det_arch='db_resnet50', reco_arch='sar_resnet31', pretrained=True)
+
+# Upload PDF file
+uploaded_files = files.upload()
+
+# Extract the uploaded file path (assuming only one file is uploaded)
+file_name = list(uploaded_files.keys())[0]
+
+# Convert the uploaded PDF to a DocumentFile object
+pdf = DocumentFile.from_pdf(file_name)
+
+# Function to check text alignment
+def is_vertical_text(block):
+    if len(block['lines']) > 1:
+        # Calculate angle based on the first and last words in the line
+        x1, y1 = block['lines'][0]['words'][0]['geometry'][0]
+        x2, y2 = block['lines'][-1]['words'][-1]['geometry'][1]
+        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
+        return angle > 45 and angle < 135  # Vertical alignment is typically around 90 degrees
+    return False
+
+# Process each page of the PDF
+final_text = ""
+for page in pdf:
+    # Process the page with the model
+    result = model([page])
+    
+    # Export the result to JSON
+    output = result.export()
+    
+    # Iterate through each page, block, and line
+    for page_idx, page_data in enumerate(output['pages']):
+        for block in page_data['blocks']:
+            if is_vertical_text(block):
+                # Rotate page if text is vertical
+                rotated_page = cv2.rotate(page, cv2.ROTATE_90_CLOCKWISE)
+                rotated_result = model([rotated_page]).export()
+                # Extract and process rotated text
+                for rotated_block in rotated_result['pages'][0]['blocks']:
+                    for line in rotated_block['lines']:
+                        line_text = " ".join([word['value'] for word in line['words']])
+                        final_text += line_text + "\n"
+            else:
+                # Process as normal horizontal text
+                for line in block['lines']:
+                    line_text = " ".join([word['value'] for word in line['words']])
+                    final_text += line_text + "\n"
+
+final_text = final_text.strip()
+print(final_text)
+
+This should allow you to detect and process both vertical and horizontal text within a PDF file. Let me know if you encounter any issues!
